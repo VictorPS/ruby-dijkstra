@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 # Describes a maze that uses Dijkstras algorithm to find the shortest path
-# between two nodes
+# between two vertices
 class Maze
   def initialize(vertices)
     @vertices = vertices
-    @min_distances = {}
-    @nodes_to_visit = vertices.keys
+    @min_distances = Hash.new(distance: Float::INFINITY)
+    @vertices_to_visit = vertices.keys
   end
 
   def min_distance(origin, target)
@@ -15,34 +15,41 @@ class Maze
       distance: 0
     }
 
-    current_node = origin
-    until nodes_to_visit.empty?
-      #  check the distance between the current node and the adjacent nodes
-      #  visit the closest node
-      vertices[current_node].each do |node, distance|
-        next unless min_distances[node].nil? || min_distances[node][:distance] > distance
-
-        min_distances[node] = {
-          previous: current_node,
-          distance: distance + min_distances[current_node][:distance]
-        }
-      end
-
-      nodes_to_visit.delete(current_node)
-      current_node = closest_unvisited_node
-    end
+    calculate_minimum_distances(origin)
 
     {
-      steps: reverse_steps(origin, target),
+      steps: show_steps(origin, target),
       distance: min_distances[target][:distance]
     }
   end
 
   private
 
-  attr_reader :vertices, :min_distances, :nodes_to_visit
+  attr_reader :vertices, :min_distances, :vertices_to_visit
 
-  def reverse_steps(origin, target)
+  def calculate_minimum_distances(origin)
+    current_vertex = origin
+    vertices_to_visit.delete(current_vertex)
+
+    until vertices_to_visit.empty?
+      minimum_distances_from_vertex(current_vertex)
+      current_vertex = closest_unvisited_vertex
+      vertices_to_visit.delete(current_vertex)
+    end
+  end
+
+  def minimum_distances_from_vertex(current_vertex)
+    vertices[current_vertex].each do |vertex, distance|
+      next unless min_distances[vertex][:distance] > distance
+
+      min_distances[vertex] = {
+        previous: current_vertex,
+        distance: distance + min_distances[current_vertex][:distance]
+      }
+    end
+  end
+
+  def show_steps(origin, target)
     steps = []
     current_step = target
 
@@ -54,10 +61,10 @@ class Maze
     steps.prepend(current_step)
   end
 
-  def closest_unvisited_node
+  def closest_unvisited_vertex
     min_distances
-      .slice(*nodes_to_visit)
-      .min_by { |_, vertice| vertice[:distance] }
+      .slice(*vertices_to_visit)
+      .min_by { |_, vertex| vertex[:distance] }
       .to_a
       .first
   end
